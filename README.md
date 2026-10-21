@@ -33,7 +33,7 @@ For minute-level schedules add a server cron job (WordPress cron only fires on s
 
 ## Development
 
-`docker compose up -d` starts a test site at http://localhost:8089 (WordPress, WooCommerce, WP-CLI and a cron runner). `docker/compose.yml` adds FTP and SFTP servers. Setup steps, logins and the smoke test are in [docker/README.md](docker/README.md).
+`docker compose up -d` starts a test site at http://localhost:8089 (WordPress, WooCommerce, WP-CLI and a cron runner). Setup steps, logins and the smoke test are in [docker/README.md](docker/README.md).
 
 ## License
 

@@ -3,8 +3,7 @@
 #
 #   docker compose up -d
 #
-# First-time setup and logins: docker/README.md. docker/compose.yml adds FTP
-# and SFTP servers.
+# First-time setup and logins: docker/README.md.
 name: psftest
 
 x-wp-env: &wp-env
@@ -26,13 +25,23 @@ services:
       MYSQL_DATABASE: wp
       MYSQL_USER: wp
       MYSQL_PASSWORD: wp
+    volumes:
+      # Named, so the database survives removing or recreating the container.
+      - dbdata:/var/lib/mysql
 
   wp:
     image: wordpress:php8.2-apache
     depends_on: [db]
     ports: ["8089:80"]
-    environment: *wp-env
-    volumes: *wp-volumes
+    environment:
+      <<: *wp-env
+      PSF_LOOPBACK_PORT: "8089"
+    volumes:
+      - wpdata:/var/www/html
+      - ./product-sync-feeds:/var/www/html/wp-content/plugins/product-sync-feeds
+      - ./tests:/var/www/psf-tests:ro
+      # Lets WordPress reach itself at http://localhost:8089, so site visits run WP-Cron.
+      - ./docker/apache-loopback.conf:/etc/apache2/conf-enabled/psf-loopback.conf:ro
 
   cli:
     image: wordpress:cli-php8.2
@@ -42,8 +51,8 @@ services:
     volumes: *wp-volumes
     entrypoint: ["sleep", "infinity"]
 
-  # Plays the role of the server cron job: Action Scheduler loopback requests
-  # cannot reach localhost:8089 from inside the container.
+  # Plays the role of the server cron job: runs due scheduled tasks every 30
+  # seconds, so schedules stay on time even when nobody visits the site.
   cron:
     image: wordpress:cli-php8.2
     depends_on: [db, wp]
@@ -54,3 +63,4 @@ services:
 
 volumes:
   wpdata:
+  dbdata:

@@ -1,0 +1,61 @@
+# Local test site: WordPress + WooCommerce + this plugin, plus FTP and SFTP
+# servers to upload to. See docker/README.md.
+name: psftest
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wp
+      MYSQL_USER: wp
+      MYSQL_PASSWORD: wp
+  wp:
+    image: wordpress:php8.2-apache
+    depends_on: [db]
+    ports: ["8089:80"]
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wp
+    volumes:
+      - wpdata:/var/www/html
+      - ..:/var/www/html/wp-content/plugins/product-sync-feeds
+  cli:
+    image: wordpress:cli-php8.2
+    depends_on: [db, wp]
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wp
+    volumes:
+      - wpdata:/var/www/html
+      - ..:/var/www/html/wp-content/plugins/product-sync-feeds
+    entrypoint: ["sleep", "infinity"]
+  # Plays the role of the server cron job: Action Scheduler loopback requests
+  # cannot reach localhost:8089 from inside the container.
+  cron:
+    image: wordpress:cli-php8.2
+    depends_on: [db, wp]
+    user: "33:33"
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wp
+      WORDPRESS_DB_PASSWORD: wp
+      WORDPRESS_DB_NAME: wp
+    volumes:
+      - wpdata:/var/www/html
+      - ..:/var/www/html/wp-content/plugins/product-sync-feeds
+    entrypoint: ["sh", "-c", "while true; do wp action-scheduler run --hooks=psf_scheduled_full,psf_scheduled_delta,psf_process_batch,psf_maintenance --quiet; sleep 30; done"]
+  sftp:
+    image: atmoz/sftp:alpine
+    command: feeder:secret:1001::upload
+  ftp:
+    image: delfer/alpine-ftp-server
+    environment:
+      USERS: "feeder|secret|/home/feeder"
+      ADDRESS: ftp
+volumes:
+  wpdata:

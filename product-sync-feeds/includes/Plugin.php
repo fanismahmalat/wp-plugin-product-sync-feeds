@@ -11,6 +11,8 @@ use ProductSyncFeeds\Admin\Admin;
 use ProductSyncFeeds\Cli\Command;
 use ProductSyncFeeds\Feed\FeedRepository;
 use ProductSyncFeeds\Feed\RunRepository;
+use ProductSyncFeeds\Licensing\License;
+use ProductSyncFeeds\Licensing\Updater;
 use ProductSyncFeeds\Product\AttributeResolver;
 use ProductSyncFeeds\Product\ProductQuery;
 use ProductSyncFeeds\Product\RowBuilder;
@@ -66,10 +68,11 @@ final class Plugin {
 
 		$this->change_tracker()->register();
 		$this->scheduler()->register();
+		$this->updater()->register();
 		( new RestController( $this->feeds(), $this->runs(), $this->state(), $this->scheduler() ) )->register();
 
 		if ( is_admin() ) {
-			( new Admin( $this->feeds(), $this->runs(), $this->scheduler(), $this->files(), $this->uploader() ) )->register();
+			( new Admin( $this->feeds(), $this->runs(), $this->scheduler(), $this->files(), $this->uploader(), $this->license(), $this->updater() ) )->register();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -151,6 +154,16 @@ final class Plugin {
 				$this->logger()
 			)
 		);
+	}
+
+	/** @return License */
+	public function license(): License {
+		return $this->get( 'license', static fn() => new License() );
+	}
+
+	/** @return Updater */
+	public function updater(): Updater {
+		return $this->get( 'updater', fn() => new Updater( $this->license() ) );
 	}
 
 	/** @return Scheduler */

@@ -1,0 +1,7 @@
+data
+releases
+test
+node_modules
+compose.yml
+*.md
+.env*

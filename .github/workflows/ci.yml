@@ -17,4 +17,16 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           coverage: none
-      - run: find . -name '*.php' -print0 | xargs -0 -n1 php -l > /dev/null
+      - run: find . -name '*.php' -not -path './license-server/*' -print0 | xargs -0 -n1 php -l > /dev/null
+
+  license-server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: license-server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm test

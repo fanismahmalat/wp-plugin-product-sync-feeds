@@ -7,9 +7,10 @@ WooCommerce product feeds for Google Merchant Center, Meta, Pinterest, TikTok an
 | Folder | What |
 |---|---|
 | [`product-sync-feeds/`](product-sync-feeds/) | **The plugin.** Exactly what ships in `product-sync-feeds.zip`. |
+| [`license-server/`](license-server/README.md) | License and update service. Runs separately (Docker), not part of the plugin. |
 | [`docker/`](docker/README.md), `docker-compose.yml` | Local test site. |
 | [`tests/`](tests/smoke-test.php) | End-to-end smoke test. |
-| [`bin/build-zip.sh`](bin/build-zip.sh) | Builds the plugin zip. |
+| [`bin/build-zip.sh`](bin/build-zip.sh) | Builds the plugin zip and `release.json`. |
 
 ## Features
 
@@ -23,7 +24,7 @@ WooCommerce product feeds for Google Merchant Center, Meta, Pinterest, TikTok an
 
 ## Install
 
-Build the zip with `bin/build-zip.sh` (output in `dist/`), then **Plugins → Add New → Upload Plugin**. Requires WordPress 6.2+, WooCommerce, PHP 7.4+.
+Download the zip from [Releases](../../releases) or build it with `bin/build-zip.sh`, then **Plugins → Add New → Upload Plugin**. Requires WordPress 6.2+, WooCommerce, PHP 7.4+.
 
 For minute-level schedules add a server cron job (WordPress cron only fires on site visits):
 
@@ -31,9 +32,16 @@ For minute-level schedules add a server cron job (WordPress cron only fires on s
 * * * * * wp action-scheduler run --hooks=psf_scheduled_full,psf_scheduled_delta,psf_process_batch,psf_maintenance --path=/path/to/wordpress
 ```
 
+## Updates and licensing
+
+Installed sites get updates from the license server, which you run separately ([license-server/](license-server/README.md)). The plugin's `Update URI` header points at it, so WordPress never asks wordpress.org about this plugin.
+
+- Customers enter their key under **WooCommerce → Product Sync Feeds → License**. Sites with an active license can update with one click (auto-updates included); others see the new version with a prompt to enter a key.
+- To release: set `Update URI` in `product-sync-feeds/product-sync-feeds.php` to your server once, bump `Version` and `PSF_VERSION`, add a changelog entry to `product-sync-feeds/readme.txt`, then push a tag `vX.Y.Z`. The Release workflow publishes the zip and `release.json` to GitHub Releases, where the server picks them up.
+
 ## Development
 
-`docker compose up -d` starts a test site at http://localhost:8089 (WordPress, WooCommerce, WP-CLI and a cron runner). Setup steps, logins and the smoke test are in [docker/README.md](docker/README.md).
+`docker compose up -d` starts a test site at http://localhost:8089 (WordPress, WooCommerce, WP-CLI and a cron runner). Setup steps, logins, license testing and the smoke test are in [docker/README.md](docker/README.md).
 
 ## License
 

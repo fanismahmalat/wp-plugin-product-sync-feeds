@@ -11,9 +11,14 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       product-sync-feeds
  * Domain Path:       /languages
+ * Update URI:        https://licenses.example.com
  *
  * WC requires at least: 7.0
- * WC tested up to:      10.2
+ * WC tested up to:      11.2
+ *
+ * Update URI is the license server that delivers updates (see license-server/).
+ * Set it to your server before building a release; PSF_LICENSE_SERVER in
+ * wp-config.php overrides it per site.
  *
  * @package ProductSyncFeeds
  */

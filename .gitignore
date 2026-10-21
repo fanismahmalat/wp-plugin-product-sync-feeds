@@ -1,8 +1,13 @@
 .DS_Store
+/dist/
+/license-server/releases/
+/license-server/data/
 /vendor/
 /node_modules/
 *.zip
 *.log
 .idea/
 .vscode/
-/dist/
+.env
+.env.*
+!.env.example

@@ -1,0 +1,34 @@
+# Runs the license server on its own (local testing, or as a starting point
+# for your stack). Settings come from .env (see .env.example).
+#
+#   docker compose up -d        # http://localhost:8090
+#
+# Without a .env file it starts with local-only dev values: dev secrets,
+# releases from ./releases, links for the Docker test sites. Once .env exists,
+# its values are used as-is, so empty secrets stop the server instead of
+# falling back to the dev ones.
+name: psf-license
+
+services:
+  license:
+    build: .
+    ports: ["8090:8080"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SIGNING_SECRET: ${SIGNING_SECRET-dev-only-signing-secret-0123456789abcdef}
+      ADMIN_TOKEN: ${ADMIN_TOKEN-dev-admin-token}
+      PUBLIC_URL: ${PUBLIC_URL-http://host.docker.internal:8090}
+      RELEASES_DIR: ${RELEASES_DIR-/releases}
+      RELEASE_CACHE_SECONDS: ${RELEASE_CACHE_SECONDS-5}
+      # Fixed inside the container: the data volume and the published port.
+      DATA_DIR: /data
+      PORT: "8080"
+    volumes:
+      - license-data:/data
+      - ./releases:/releases:ro
+    restart: unless-stopped
+
+volumes:
+  license-data:

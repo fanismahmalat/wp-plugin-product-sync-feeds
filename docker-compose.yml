@@ -3,7 +3,8 @@
 #
 #   docker compose up -d
 #
-# First-time setup and logins: docker/README.md.
+# First-time setup and logins: docker/README.md. The license server is
+# separate: license-server/compose.yml.
 name: psftest
 
 x-wp-env: &wp-env
@@ -11,6 +12,9 @@ x-wp-env: &wp-env
   WORDPRESS_DB_USER: wp
   WORDPRESS_DB_PASSWORD: wp
   WORDPRESS_DB_NAME: wp
+  # Read by docker/mu-plugins/psf-dev.php.
+  PSF_LICENSE_SERVER: http://host.docker.internal:8090
+  PSF_DEV_MOUNTED: "1"
 
 x-wp-volumes: &wp-volumes
   - wpdata:/var/www/html
@@ -42,6 +46,7 @@ services:
       - ./tests:/var/www/psf-tests:ro
       # Lets WordPress reach itself at http://localhost:8089, so site visits run WP-Cron.
       - ./docker/apache-loopback.conf:/etc/apache2/conf-enabled/psf-loopback.conf:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
 
   cli:
     image: wordpress:cli-php8.2
@@ -49,6 +54,7 @@ services:
     user: "33:33"
     environment: *wp-env
     volumes: *wp-volumes
+    extra_hosts: ["host.docker.internal:host-gateway"]
     entrypoint: ["sleep", "infinity"]
 
   # Plays the role of the server cron job: runs due scheduled tasks every 30
@@ -59,6 +65,7 @@ services:
     user: "33:33"
     environment: *wp-env
     volumes: *wp-volumes
+    extra_hosts: ["host.docker.internal:host-gateway"]
     entrypoint: ["sh", "-c", "while true; do wp action-scheduler run --hooks=psf_scheduled_full,psf_scheduled_delta,psf_process_batch,psf_maintenance --quiet; sleep 30; done"]
 
 volumes:

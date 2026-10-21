@@ -1,0 +1,37 @@
+# Second WordPress site for testing real updates: the plugin is installed from
+# the zip (not mounted), so WordPress can replace it. Needs ../docker-compose.yml
+# running (shares its database server and network). See README.md.
+name: psfupd
+services:
+  wp2:
+    image: wordpress:php8.2-apache
+    ports: ["8091:80"]
+    environment: &env
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: root
+      WORDPRESS_DB_PASSWORD: root
+      WORDPRESS_DB_NAME: wp2
+      PSF_LICENSE_SERVER: http://host.docker.internal:8090
+      PSF_LOOPBACK_PORT: "8091"
+    volumes:
+      - wp2data:/var/www/html
+      - ./apache-loopback.conf:/etc/apache2/conf-enabled/psf-loopback.conf:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    networks: [psftest]
+  cli2:
+    image: wordpress:cli-php8.2
+    user: "33:33"
+    environment: *env
+    volumes:
+      - wp2data:/var/www/html
+      - ./mu-plugins:/seed/mu-plugins:ro
+      - ../license-server/releases:/seed/releases:ro
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    entrypoint: ["sleep", "infinity"]
+    networks: [psftest]
+volumes:
+  wp2data:
+networks:
+  psftest:
+    name: psftest_default
+    external: true

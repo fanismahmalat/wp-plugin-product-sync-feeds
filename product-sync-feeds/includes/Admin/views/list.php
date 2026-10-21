@@ -31,6 +31,7 @@ $psf_when     = static function ( ?string $gmt ): string {
 ?>
 <h1 class="wp-heading-inline"><?php esc_html_e( 'Product Sync Feeds', 'product-sync-feeds' ); ?></h1>
 <a href="<?php echo esc_url( Admin::url( array( 'view' => 'edit' ) ) ); ?>" class="page-title-action"><?php esc_html_e( 'Add feed', 'product-sync-feeds' ); ?></a>
+<a href="<?php echo esc_url( Admin::url( array( 'view' => 'license' ) ) ); ?>" class="page-title-action"><?php esc_html_e( 'License', 'product-sync-feeds' ); ?></a>
 <hr class="wp-header-end">
 
 <?php if ( ! $feeds ) : ?>

@@ -12,6 +12,8 @@ use ProductSyncFeeds\Feed\Feed;
 use ProductSyncFeeds\Feed\FeedConfig;
 use ProductSyncFeeds\Feed\FeedRepository;
 use ProductSyncFeeds\Feed\RunRepository;
+use ProductSyncFeeds\Licensing\License;
+use ProductSyncFeeds\Licensing\Updater;
 use ProductSyncFeeds\Plugin;
 use ProductSyncFeeds\Support\Files;
 use ProductSyncFeeds\Sync\Scheduler;
@@ -37,6 +39,10 @@ class Admin {
 	private $files;
 	/** @var Uploader */
 	private $uploader;
+	/** @var License */
+	private $license;
+	/** @var Updater */
+	private $updater;
 
 	/**
 	 * Constructor.
@@ -46,13 +52,17 @@ class Admin {
 	 * @param Scheduler      $scheduler Scheduler.
 	 * @param Files          $files     Files.
 	 * @param Uploader       $uploader  Uploader.
+	 * @param License        $license   License.
+	 * @param Updater        $updater   Updater.
 	 */
-	public function __construct( FeedRepository $feeds, RunRepository $runs, Scheduler $scheduler, Files $files, Uploader $uploader ) {
+	public function __construct( FeedRepository $feeds, RunRepository $runs, Scheduler $scheduler, Files $files, Uploader $uploader, License $license, Updater $updater ) {
 		$this->feeds     = $feeds;
 		$this->runs      = $runs;
 		$this->scheduler = $scheduler;
 		$this->files     = $files;
 		$this->uploader  = $uploader;
+		$this->license   = $license;
+		$this->updater   = $updater;
 	}
 
 	/**
@@ -63,6 +73,7 @@ class Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		add_action( 'admin_post_psf_save_feed', array( $this, 'save' ) );
 		add_action( 'admin_post_psf_feed_action', array( $this, 'action' ) );
+		add_action( 'admin_post_psf_license', array( $this, 'license_action' ) );
 		add_action( 'wp_ajax_psf_test_upload', array( $this, 'ajax_test_upload' ) );
 		add_action( 'wp_ajax_psf_status', array( $this, 'ajax_status' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( PSF_FILE ), array( $this, 'plugin_links' ) );
@@ -82,7 +93,11 @@ class Admin {
 	 * @return array
 	 */
 	public function plugin_links( array $links ): array {
-		array_unshift( $links, '<a href="' . esc_url( self::url() ) . '">' . esc_html__( 'Feeds', 'product-sync-feeds' ) . '</a>' );
+		array_unshift(
+			$links,
+			'<a href="' . esc_url( self::url() ) . '">' . esc_html__( 'Feeds', 'product-sync-feeds' ) . '</a>',
+			'<a href="' . esc_url( self::url( array( 'view' => 'license' ) ) ) . '">' . esc_html__( 'License', 'product-sync-feeds' ) . '</a>'
+		);
 		return $links;
 	}
 
@@ -185,6 +200,12 @@ class Admin {
 				return;
 			}
 			$this->render_edit( $feed );
+		} elseif ( 'license' === $view ) {
+			$license = $this->license;
+			$data    = $license->data();
+			$check   = get_transient( Updater::CACHE );
+			$latest  = is_array( $check ) && ! empty( $check['update']['version'] ) ? (string) $check['update']['version'] : '';
+			include __DIR__ . '/views/license.php';
 		} elseif ( 'runs' === $view && $feed_id ) {
 			$feed = $this->feeds->find( $feed_id );
 			if ( $feed ) {
@@ -193,6 +214,9 @@ class Admin {
 				include __DIR__ . '/views/runs.php';
 			}
 		} else {
+			if ( ! $this->license->is_active() ) {
+				echo '<div class="notice notice-info"><p>' . esc_html__( 'Enter your license key to receive plugin updates.', 'product-sync-feeds' ) . ' <a href="' . esc_url( self::url( array( 'view' => 'license' ) ) ) . '">' . esc_html__( 'Add license', 'product-sync-feeds' ) . '</a></p></div>';
+			}
 			$feeds     = $this->feeds->all();
 			$runs      = $this->runs;
 			$files     = $this->files;
@@ -396,6 +420,55 @@ class Admin {
 				break;
 		}
 
+		wp_safe_redirect( self::url( $args ) );
+		exit;
+	}
+
+	/**
+	 * License form: activate, deactivate, check for updates.
+	 */
+	public function license_action(): void {
+		if ( ! current_user_can( self::CAP ) ) {
+			wp_die( esc_html__( 'You do not have permission to manage feeds.', 'product-sync-feeds' ) );
+		}
+		check_admin_referer( 'psf_license' );
+		$do   = isset( $_POST['do'] ) ? sanitize_key( $_POST['do'] ) : '';
+		$args = array( 'view' => 'license' );
+
+		switch ( $do ) {
+			case 'activate':
+				$key    = isset( $_POST['license_key'] ) ? sanitize_text_field( wp_unslash( $_POST['license_key'] ) ) : '';
+				$result = $this->license->activate( $key );
+				if ( is_wp_error( $result ) ) {
+					$args['psf_error'] = $result->get_error_message();
+				} else {
+					$args['psf_notice'] = __( 'License activated. Updates are enabled for this site.', 'product-sync-feeds' );
+					$this->updater->check( true );
+				}
+				break;
+			case 'deactivate':
+				$result = $this->license->deactivate();
+				$args[ is_wp_error( $result ) ? 'psf_error' : 'psf_notice' ] = is_wp_error( $result )
+					/* translators: %s: error message */
+					? sprintf( __( 'The key was removed from this site, but the server could not be told: %s', 'product-sync-feeds' ), $result->get_error_message() )
+					: __( 'License deactivated on this site. The slot is free for another site.', 'product-sync-feeds' );
+				break;
+			case 'check':
+				License::flush_update_caches();
+				$response = $this->updater->check( true );
+				if ( null === $response ) {
+					$cached            = get_transient( Updater::CACHE );
+					$args['psf_error'] = (string) ( $cached['error'] ?? __( 'Could not reach the license server.', 'product-sync-feeds' ) );
+				} else {
+					wp_update_plugins();
+					$latest             = (string) ( $response['update']['version'] ?? '' );
+					$args['psf_notice'] = '' !== $latest && version_compare( $latest, PSF_VERSION, '>' )
+						/* translators: %s: version */
+						? sprintf( __( 'Version %s is available. Update it from Dashboard > Updates or the Plugins screen.', 'product-sync-feeds' ), $latest )
+						: __( 'You have the latest version.', 'product-sync-feeds' );
+				}
+				break;
+		}
 		wp_safe_redirect( self::url( $args ) );
 		exit;
 	}

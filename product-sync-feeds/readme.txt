@@ -2,7 +2,7 @@
 Contributors: fanismahmalat
 Tags: woocommerce, product feed, google merchant center, facebook catalog, delta sync
 Requires at least: 6.2
-Tested up to: 6.8
+Tested up to: 7.1
 Requires PHP: 7.4
 Stable tag: 1.0.0
 License: GPLv2 or later
@@ -42,6 +42,9 @@ Full rebuilds and delta runs have separate schedules, from every minute up to we
 = Upload =
 FTP, FTPS (explicit TLS) and SFTP through PHP cURL. Choose the full feed, delta files, or both. Files upload under a temporary name and are renamed when complete. Passwords are stored encrypted.
 
+= Updates and license =
+Updates come from your own license server (see license-server/ in the repository), not wordpress.org. Enter the license key under WooCommerce > Product Sync Feeds > License. Every site sees new versions; sites with an active license can install them with one click, including auto-updates. Without a key the plugin keeps working; only updates are unavailable.
+
 = Developers =
 * REST: `GET /psf/v1/feeds`, `GET /psf/v1/feeds/{id}`, `POST /psf/v1/feeds/{id}/run` (`{"type":"full"|"delta"}`), `GET /psf/v1/feeds/{id}/runs`, `GET /psf/v1/feeds/{id}/changes`.
 * WP-CLI: `wp psf list`, `wp psf run <id> --type=delta`, `wp psf schedule`.
@@ -70,3 +73,4 @@ Fetch the full feed, or call the changes API with an older `since`. Deletes are 
 
 = 1.0.0 =
 * First release.
+* License key screen and one-click updates from the license server.

@@ -2,6 +2,15 @@
 
 WooCommerce product feeds for Google Merchant Center, Meta, Pinterest, TikTok and custom integrations, with **delta (partial) syncs**, minute-level schedules, FTP/FTPS/SFTP upload and product filters.
 
+## Repository layout
+
+| Folder | What |
+|---|---|
+| [`product-sync-feeds/`](product-sync-feeds/) | **The plugin.** Exactly what ships in `product-sync-feeds.zip`. |
+| [`docker/`](docker/README.md), `docker-compose.yml` | Local test site. |
+| [`tests/`](tests/smoke-test.php) | End-to-end smoke test. |
+| [`bin/build-zip.sh`](bin/build-zip.sh) | Builds the plugin zip. |
+
 ## Features
 
 - **Feeds:** XML (RSS 2.0 with `g:` namespace or custom elements), CSV, TSV, JSON, JSON Lines. Field mapping from 50+ built-in values plus `meta:`, `attr:`, `tax:` and `static:` sources, with prefix, suffix, default, length limit and transforms.
@@ -10,11 +19,11 @@ WooCommerce product feeds for Google Merchant Center, Meta, Pinterest, TikTok an
 - **Delta delivery:** a latest-delta file, timestamped history files, and a changes API (`GET /wp-json/psf/v1/feeds/{id}/changes?since=…`, authenticated with a per-feed key).
 - **Scheduling:** separate full and delta schedules from every minute to weekly, through WooCommerce Action Scheduler, in batches.
 - **Upload:** FTP, FTPS and SFTP via cURL, uploaded under a temporary name and renamed when complete.
-- **Developers:** REST API, WP-CLI (`wp psf list|run|schedule`), filters and actions. See [readme.txt](readme.txt).
+- **Developers:** REST API, WP-CLI (`wp psf list|run|schedule`), filters and actions. See [readme.txt](product-sync-feeds/readme.txt).
 
 ## Install
 
-Download the zip from [Releases](../../releases) (or zip the repo as `product-sync-feeds/`), then **Plugins → Add New → Upload Plugin**. Requires WordPress 6.2+, WooCommerce, PHP 7.4+.
+Build the zip with `bin/build-zip.sh` (output in `dist/`), then **Plugins → Add New → Upload Plugin**. Requires WordPress 6.2+, WooCommerce, PHP 7.4+.
 
 For minute-level schedules add a server cron job (WordPress cron only fires on site visits):
 
@@ -24,7 +33,7 @@ For minute-level schedules add a server cron job (WordPress cron only fires on s
 
 ## Development
 
-A Docker test site (WordPress, WooCommerce, FTP and SFTP servers) and a smoke test are in [docker/](docker/README.md) and [tests/](tests/smoke-test.php).
+`docker compose up -d` starts a test site at http://localhost:8089 (WordPress, WooCommerce, WP-CLI and a cron runner). `docker/compose.yml` adds FTP and SFTP servers. Setup steps, logins and the smoke test are in [docker/README.md](docker/README.md).
 
 ## License
 

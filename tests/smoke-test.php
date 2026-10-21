@@ -2,7 +2,7 @@
 /**
  * End-to-end smoke test. Run on a disposable WooCommerce site:
  *
- *   wp eval-file wp-content/plugins/product-sync-feeds/tests/smoke-test.php
+ *   wp eval-file /path/to/repo/tests/smoke-test.php   (Docker: see docker/README.md)
  *
  * Creates products and feeds, runs full and delta syncs and checks the files,
  * the sync state and the changes API. Everything it creates is deleted at the end.

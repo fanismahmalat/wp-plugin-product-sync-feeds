@@ -1,0 +1,56 @@
+# Local test stack: WordPress + WooCommerce with the plugin (product-sync-feeds/)
+# mounted from the repo, WP-CLI and a cron runner.
+#
+#   docker compose up -d
+#
+# First-time setup and logins: docker/README.md. docker/compose.yml adds FTP
+# and SFTP servers.
+name: psftest
+
+x-wp-env: &wp-env
+  WORDPRESS_DB_HOST: db
+  WORDPRESS_DB_USER: wp
+  WORDPRESS_DB_PASSWORD: wp
+  WORDPRESS_DB_NAME: wp
+
+x-wp-volumes: &wp-volumes
+  - wpdata:/var/www/html
+  - ./product-sync-feeds:/var/www/html/wp-content/plugins/product-sync-feeds
+  - ./tests:/var/www/psf-tests:ro
+
+services:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: wp
+      MYSQL_USER: wp
+      MYSQL_PASSWORD: wp
+
+  wp:
+    image: wordpress:php8.2-apache
+    depends_on: [db]
+    ports: ["8089:80"]
+    environment: *wp-env
+    volumes: *wp-volumes
+
+  cli:
+    image: wordpress:cli-php8.2
+    depends_on: [db, wp]
+    user: "33:33"
+    environment: *wp-env
+    volumes: *wp-volumes
+    entrypoint: ["sleep", "infinity"]
+
+  # Plays the role of the server cron job: Action Scheduler loopback requests
+  # cannot reach localhost:8089 from inside the container.
+  cron:
+    image: wordpress:cli-php8.2
+    depends_on: [db, wp]
+    user: "33:33"
+    environment: *wp-env
+    volumes: *wp-volumes
+    entrypoint: ["sh", "-c", "while true; do wp action-scheduler run --hooks=psf_scheduled_full,psf_scheduled_delta,psf_process_batch,psf_maintenance --quiet; sleep 30; done"]
+
+volumes:
+  wpdata:
